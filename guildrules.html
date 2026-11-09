@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>guildrules — Discord server rules generator</title>
+<style>
+  :root {
+    --bg: #1e1f22;
+    --panel: #2b2d31;
+    --panel-2: #313338;
+    --line: #3f4147;
+    --text: #dbdee1;
+    --muted: #b5bac1;
+    --dim: #80848e;
+    --accent: #5865f2;
+    --accent-hover: #4752c4;
+    --green: #3ba55d;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "gg sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  a { color: #949cf7; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 40px; }
+
+  header.top { margin-bottom: 22px; }
+  header.top h1 { margin: 0; font-size: 30px; letter-spacing: -0.5px; }
+  header.top h1 span { color: var(--accent); }
+  header.top p { margin: 6px 0 0; color: var(--muted); max-width: 640px; }
+
+  main { display: grid; grid-template-columns: 380px 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 820px) { main { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+  }
+  .card h2 {
+    margin: 0 0 4px;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  .card .hint { margin: 0 0 14px; color: var(--dim); font-size: 13px; }
+
+  label.field { display: block; margin-bottom: 14px; }
+  label.field > span {
+    display: block; margin-bottom: 5px;
+    font-size: 13px; font-weight: 600; color: var(--muted);
+  }
+  input[type="text"], select {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--text);
+    font: inherit;
+    padding: 9px 11px;
+    outline: none;
+  }
+  input[type="text"]:focus, select:focus { border-color: var(--accent); }
+
+  .tones { display: flex; gap: 6px; }
+  .tones button {
+    flex: 1;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 4px;
+    cursor: pointer;
+  }
+  .tones button[aria-pressed="true"] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .tone-note { margin: 8px 0 0; color: var(--dim); font-size: 13px; min-height: 19px; }
+
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .presets button {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    padding: 5px 12px;
+    cursor: pointer;
+  }
+  .presets button:hover { color: var(--text); border-color: var(--accent); }
+
+  .cats { display: flex; flex-direction: column; gap: 2px; }
+  .cat {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 8px 9px; border-radius: 6px; cursor: pointer;
+  }
+  .cat:hover { background: var(--panel-2); }
+  .cat input { margin-top: 3px; accent-color: var(--accent); width: 16px; height: 16px; }
+  .cat b { display: block; font-size: 14px; }
+  .cat small { color: var(--dim); font-size: 13px; }
+
+  .custom-row { display: flex; gap: 8px; }
+  .custom-row input { flex: 1; }
+  .custom-list { list-style: none; margin: 10px 0 0; padding: 0; }
+  .custom-list li {
+    display: flex; justify-content: space-between; gap: 10px;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 7px 10px;
+    margin-bottom: 6px;
+    font-size: 14px;
+  }
+  .custom-list button {
+    background: none; border: none; color: var(--dim);
+    font: inherit; cursor: pointer; padding: 0 2px;
+  }
+  .custom-list button:hover { color: #ed4245; }
+
+  .checks { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 4px; }
+  .checks label { display: flex; gap: 7px; align-items: center; color: var(--muted); font-size: 14px; cursor: pointer; }
+  .checks input { accent-color: var(--accent); width: 15px; height: 15px; }
+
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  button.primary {
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    padding: 9px 14px;
+    cursor: pointer;
+  }
+  button.primary:hover { background: var(--accent-hover); }
+  button.ghost {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--text);
+    font: inherit;
+    padding: 9px 14px;
+    cursor: pointer;
+  }
+  button.ghost:hover { border-color: var(--accent); }
+  .status { margin: 10px 0 0; color: var(--green); font-size: 13px; min-height: 19px; }
+  .stats { margin: 4px 0 0; color: var(--dim); font-size: 13px; }
+
+  /* Discord-style preview */
+  .preview-card { position: sticky; top: 16px; }
+  @media (max-width: 820px) { .preview-card { position: static; } }
+  .msg { display: flex; gap: 12px; padding: 4px 0; }
+  .avatar {
+    flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%;
+    background: var(--accent);
+    color: #fff; font-weight: 700; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .msg-body { min-width: 0; }
+  .msg-head { font-size: 14px; margin-bottom: 2px; }
+  .msg-head b { color: #fff; font-weight: 600; }
+  .bot-tag {
+    background: var(--accent); color: #fff;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.02em;
+    border-radius: 4px; padding: 1px 5px; margin-left: 5px;
+    vertical-align: 1px;
+  }
+  .msg-head time { color: var(--dim); font-size: 12px; margin-left: 6px; }
+  .msg-text { color: var(--text); font-size: 15px; overflow-wrap: anywhere; }
+  .msg-text h3 { margin: 14px 0 6px; font-size: 16px; color: #fff; }
+  .msg-text h3:first-child { margin-top: 0; }
+  .msg-text .welcome { color: var(--muted); }
+  .msg-text .rule { margin: 5px 0; }
+  .msg-text .rule .num { color: var(--dim); font-weight: 600; }
+  .msg-text .rule b { color: #fff; }
+  .msg-text .empty {
+    color: var(--dim); font-style: italic;
+    border: 1px dashed var(--line); border-radius: 6px;
+    padding: 14px; margin-top: 8px;
+  }
+  .msg-text .footer-note { color: var(--muted); margin-top: 12px; font-size: 14px; }
+
+  footer.bottom { margin-top: 26px; color: var(--dim); font-size: 13px; }
+  footer.bottom code { color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>guild<span>rules</span></h1>
+    <p>Pick the rules your Discord server actually needs, choose a tone, and get a
+    finished rules page — previewed exactly how it will look in Discord, ready to
+    copy or download as Markdown.</p>
+  </header>
+
+  <main>
+    <section class="card" aria-label="Rule settings">
+      <h2>Your server</h2>
+      <p class="hint">Everything updates the preview live. Nothing is uploaded anywhere.</p>
+
+      <label class="field">
+        <span>Server name</span>
+        <input type="text" id="serverName" value="My Server" maxlength="60"
+               autocomplete="off" spellcheck="false">
+      </label>
+
+      <label class="field">
+        <span>Tone</span>
+        <div class="tones" id="tones" role="group" aria-label="Tone">
+          <button type="button" data-tone="strict" aria-pressed="true">Strict</button>
+          <button type="button" data-tone="friendly" aria-pressed="false">Friendly</button>
+          <button type="button" data-tone="chill" aria-pressed="false">Chill</button>
+        </div>
+        <p class="tone-note" id="toneNote"></p>
+      </label>
+
+      <h2>Presets</h2>
+      <p class="hint">One click fills in a sensible set for that kind of server.</p>
+      <div class="presets" id="presets">
+        <button type="button" data-preset="gaming">Gaming server</button>
+        <button type="button" data-preset="community">Community</button>
+        <button type="button" data-preset="study">Study group</button>
+      </div>
+
+      <h2>Rule categories</h2>
+      <p class="hint">Tick what applies. Each category has one or two rules, worded in your tone.</p>
+      <div class="cats" id="cats"></div>
+
+      <h2 style="margin-top:16px">Custom rules</h2>
+      <p class="hint">Something specific to your server? Add it — it lands at the end.</p>
+      <div class="custom-row">
+        <input type="text" id="customInput" maxlength="240" placeholder="e.g. No spoilers for the new season until Monday"
+               autocomplete="off" spellcheck="false">
+        <button class="ghost" type="button" id="addCustom">Add</button>
+      </div>
+      <ul class="custom-list" id="customList"></ul>
+
+      <h2 style="margin-top:16px">Format</h2>
+      <label class="field">
+        <span>Numbering</span>
+        <select id="numbering">
+          <option value="numbers">1. 2. 3. — numbered list</option>
+          <option value="rule">Rule 1: Rule 2: — labelled</option>
+          <option value="dash">— dash bullets</option>
+        </select>
+      </label>
+      <div class="checks">
+        <label><input type="checkbox" id="includeHeader" checked> Welcome line</label>
+        <label><input type="checkbox" id="includeFooter" checked> Consequences line</label>
+      </div>
+
+      <div class="actions">
+        <button class="primary" type="button" id="copyMd">Copy Markdown</button>
+        <button class="ghost" type="button" id="copyTxt">Copy plain text</button>
+        <button class="ghost" type="button" id="downloadMd">Download .md</button>
+      </div>
+      <p class="status" id="status" role="status"></p>
+      <p class="stats" id="stats"></p>
+    </section>
+
+    <section class="card preview-card" aria-label="Live preview">
+      <h2>Live preview — how it looks in Discord</h2>
+      <p class="hint">This is a mock message, not a real Discord embed. Paste the Markdown into a
+      <code>#rules</code> channel and it renders the same way.</p>
+      <div class="msg">
+        <div class="avatar" aria-hidden="true">GR</div>
+        <div class="msg-body">
+          <div class="msg-head"><b>guildrules</b><span class="bot-tag">APP</span><time id="previewTime"></time></div>
+          <div class="msg-text" id="preview"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bottom">
+    <p>Open source, MIT licensed. No accounts, no tracking, no server — the whole
+    generator runs in your browser. <code>guildrules.html</code> is the entire app.</p>
+  </footer>
+</div>
+
+<script id="rulecore">
+"use strict";
+/* RuleGen — the DOM-free core of guildrules.
+   Holds the rule catalogue, picks wording by tone, and renders the
+   rules as Markdown, plain text, and preview lines. No DOM access here,
+   so tests/run.js can load this block in Node and exercise it directly. */
+var RuleGen = (function () {
+
+  var TONES = ["strict", "friendly", "chill"];
+
+  var TONE_NOTES = {
+    strict: "Direct and firm — reads like a mod wrote it with a straight face.",
+    friendly: "Warm but clear — firm rules, no shouting.",
+    chill: "Laid-back — same rules, looser language."
+  };
+
+  // Each category: id, title, short blurb for the checkbox list, and one or
+  // two rules. Every rule is worded three ways, one per tone. I wrote the
+  // strict versions first and softened them from there, which is why the
+  // friendly/chill ones still say the same thing — tone changes the voice,
+  // never the rule.
+  var CATEGORIES = [
+    {
+      id: "respect",
+      title: "Be respectful",
+      blurb: "Harassment, hate speech, and picking fights",
+      rules: [
+        {
+          strict: "Harassment, insults, and targeted abuse are not tolerated. Hate speech, slurs, and discrimination of any kind result in an immediate ban.",
+          friendly: "Be kind to each other. No harassment, insults, or hate speech — if you would not say it to someone's face, do not say it here.",
+          chill: "Do not be a jerk. No harassment, insults, or hate speech — that is a straight ban, no warnings."
+        },
+        {
+          strict: "Keep disagreements civil. Attack the argument, not the person, and drop it when a moderator asks you to.",
+          friendly: "Disagreements happen — keep them civil, stick to the topic, and let it go when a mod steps in.",
+          chill: "Argue the point, not the person. When a mod says drop it, drop it."
+        }
+      ]
+    },
+    {
+      id: "spam",
+      title: "No spam",
+      blurb: "Flooding chat, caps walls, unsolicited links and invites",
+      rules: [
+        {
+          strict: "Do not flood the chat with repeated messages, excessive caps, or walls of text. Keep messages readable.",
+          friendly: "Please do not flood the chat — no repeated messages, huge caps-lock walls, or copy-paste spam.",
+          chill: "No flooding the chat. One message is enough, nobody needs it twelve times."
+        },
+        {
+          strict: "Do not post unsolicited links, invites to other servers, or advertisements without staff permission.",
+          friendly: "Links and server invites need staff permission first — no surprise ads or invite drops.",
+          chill: "No random links or server invites unless staff said it is fine."
+        }
+      ]
+    },
+    {
+      id: "nsfw",
+      title: "Keep it clean",
+      blurb: "NSFW content only where it is explicitly allowed",
+      rules: [
+        {
+          strict: "No NSFW content outside of channels explicitly marked for it. This includes explicit images, links, and graphic descriptions.",
+          friendly: "Keep things safe for work unless you are in a channel marked NSFW — that covers images, links, and descriptions.",
+          chill: "NSFW stuff only goes in NSFW-marked channels. Anywhere else, keep it clean."
+        }
+      ]
+    },
+    {
+      id: "voice",
+      title: "Voice chat manners",
+      blurb: "Soundboards, earrape, and ignoring mutes",
+      rules: [
+        {
+          strict: "Do not use soundboards, earrape, or loud background noise in voice channels. Respect mute and deafen requests from moderators.",
+          friendly: "In voice chat, keep it pleasant — no soundboards, earrape, or blasting music, and respect it when a mod asks you to mute.",
+          chill: "Voice chat is for talking, not for earrape or soundboard spam. If a mod asks you to mute, mute."
+        }
+      ]
+    },
+    {
+      id: "privacy",
+      title: "Respect privacy",
+      blurb: "Doxxing and sharing personal info",
+      rules: [
+        {
+          strict: "Do not share anyone's personal information — real names, addresses, photos, or account details — without their explicit consent. Doxxing is a permanent ban.",
+          friendly: "Do not share anyone's personal info (real name, address, photos) without them saying it is okay. Doxxing gets you permanently banned.",
+          chill: "Never post someone's personal info. Doxxing is a permaban, no second chances."
+        }
+      ]
+    },
+    {
+      id: "mods",
+      title: "Mods have the final say",
+      blurb: "Arguing with mod calls in public chat",
+      rules: [
+        {
+          strict: "Moderator decisions are final. If you disagree, appeal through the proper channel (modmail or a ticket) — do not argue in public chat.",
+          friendly: "Mods have the final word. If you think a call was wrong, appeal through modmail or a ticket instead of arguing in chat.",
+          chill: "The mods' call is final. Think it is wrong? Appeal in modmail — do not start a public argument about it."
+        }
+      ]
+    },
+    {
+      id: "ontopic",
+      title: "Keep channels on topic",
+      blurb: "Random chat in announcements and support channels",
+      rules: [
+        {
+          strict: "Use each channel for its intended purpose. Off-topic discussion belongs in the off-topic channel, not in support or announcement channels.",
+          friendly: "Try to keep each channel on topic — there is an off-topic channel for everything else.",
+          chill: "Post in the right channel. Random chat goes in off-topic, not in announcements."
+        }
+      ]
+    },
+    {
+      id: "age",
+      title: "Follow Discord's rules",
+      blurb: "The 13+ age rule from Discord's Terms of Service",
+      rules: [
+        {
+          strict: "You must be 13 or older to use Discord, per Discord's Terms of Service. Accounts found to be underage will be removed.",
+          friendly: "Discord requires you to be 13 or older, so we do too — underage accounts will have to go.",
+          chill: "You need to be 13+ to be on Discord, same rule applies here."
+        }
+      ]
+    }
+  ];
+
+  // Sensible starting sets. Gaming servers need the voice rules, study groups
+  // mostly need respect + on-topic, communities get the lot minus voice.
+  var PRESETS = {
+    gaming: ["respect", "spam", "nsfw", "voice", "privacy", "mods", "age"],
+    community: ["respect", "spam", "nsfw", "privacy", "mods", "ontopic", "age"],
+    study: ["respect", "spam", "ontopic", "mods", "age"]
+  };
+
+  var DEFAULT_SERVER_NAME = "My Server";
+  var MAX_CUSTOM_RULES = 20;
+
+  /** Escape the characters that would change meaning in Markdown.
+      Periods and hyphens are deliberately left alone — escaping them
+      litters the output with backslashes for no benefit. */
+  function escapeMarkdown(text) {
+    return String(text).replace(/([\\`*_{}[\]()#+!|])/g, "\\$1");
+  }
+
+  /** Collapse runs of whitespace and trim; returns "" for blank input. */
+  function clean(text) {
+    return String(text == null ? "" : text).replace(/\s+/g, " ").trim();
+  }
+
+  function findCategory(id) {
+    for (var i = 0; i < CATEGORIES.length; i++) {
+      if (CATEGORIES[i].id === id) return CATEGORIES[i];
+    }
+    return null;
+  }
+
+  /** Validate the options object; throws a plain Error with a human message. */
+  function validateOptions(opts) {
+    if (!opts || typeof opts !== "object") {
+      throw new Error("buildRules needs an options object");
+    }
+    if (TONES.indexOf(opts.tone) === -1) {
+      throw new Error("Unknown tone: " + opts.tone + ". Use strict, friendly, or chill.");
+    }
+    if (["numbers", "rule", "dash"].indexOf(opts.numbering) === -1) {
+      throw new Error("Unknown numbering style: " + opts.numbering + ".");
+    }
+    var selected = opts.selected || [];
+    if (!Array.isArray(selected)) {
+      throw new Error("selected must be a list of category ids");
+    }
+    selected.forEach(function (id) {
+      if (!findCategory(id)) throw new Error("Unknown category: " + id + ".");
+    });
+    var custom = opts.custom || [];
+    if (!Array.isArray(custom)) {
+      throw new Error("custom must be a list of rule texts");
+    }
+    if (custom.length > MAX_CUSTOM_RULES) {
+      throw new Error("Too many custom rules — at most " + MAX_CUSTOM_RULES + ".");
+    }
+    return {
+      serverName: clean(opts.serverName) || DEFAULT_SERVER_NAME,
+      tone: opts.tone,
+      selected: selected.slice(),
+      custom: custom.map(clean).filter(function (t) { return t.length > 0; }),
+      numbering: opts.numbering,
+      header: opts.header !== false,
+      footer: opts.footer !== false
+    };
+  }
+
+  function prefixFor(numbering, n) {
+    if (numbering === "rule") return "Rule " + n + ": ";
+    if (numbering === "dash") return "- ";
+    return n + ". ";
+  }
+
+  /**
+   * Build the rules page.
+   * Returns { markdown, plain, preview, ruleCount, wordCount } where preview
+   * is a list of { num, title, text } for the Discord-style preview pane.
+   * An empty selection is not an error — it returns a header with a note,
+   * so the UI can show a friendly empty state instead of crashing.
+   */
+  function buildRules(rawOpts) {
+    var opts = validateOptions(rawOpts);
+    var rules = []; // { title, text } in display order
+    opts.selected.forEach(function (id) {
+      var cat = findCategory(id);
+      cat.rules.forEach(function (rule) {
+        rules.push({ title: cat.title, text: rule[opts.tone] });
+      });
+    });
+    opts.custom.forEach(function (text) {
+      rules.push({ title: "Custom rule", text: text });
+    });
+
+    var welcome = "Welcome to " + opts.serverName +
+      "! These rules keep the server fun for everyone. Please read them before chatting.";
+    var consequences = "Breaking these rules may result in a warning, mute, kick, or ban, " +
+      "depending on the situation. Thanks for being part of " + opts.serverName + "!";
+
+    var md = ["# " + escapeMarkdown(opts.serverName) + " — Server Rules", ""];
+    var plain = [opts.serverName.toUpperCase() + " — SERVER RULES", ""];
+    if (opts.header) {
+      md.push(welcome, "");
+      plain.push(welcome, "");
+    }
+    if (rules.length === 0) {
+      md.push("_No rules selected yet — tick a category or add a custom rule._");
+      plain.push("No rules selected yet — tick a category or add a custom rule.");
+    } else {
+      rules.forEach(function (r, i) {
+        var pre = prefixFor(opts.numbering, i + 1);
+        md.push(pre + "**" + escapeMarkdown(r.title) + "** — " + escapeMarkdown(r.text));
+        plain.push(pre + r.title + " — " + r.text);
+      });
+    }
+    if (opts.footer) {
+      md.push("", consequences);
+      plain.push("", consequences);
+    }
+
+    var markdown = md.join("\n");
+    var plainText = plain.join("\n");
+    var preview = rules.map(function (r, i) {
+      return { num: i + 1, title: r.title, text: r.text };
+    });
+
+    return {
+      markdown: markdown,
+      plain: plainText,
+      preview: preview,
+      header: opts.header ? welcome : "",
+      footer: opts.footer ? consequences : "",
+      serverName: opts.serverName,
+      ruleCount: rules.length,
+      wordCount: markdown.split(/\s+/).filter(Boolean).length
+    };
+  }
+
+  return {
+    TONES: TONES,
+    TONE_NOTES: TONE_NOTES,
+    CATEGORIES: CATEGORIES,
+    PRESETS: PRESETS,
+    DEFAULT_SERVER_NAME: DEFAULT_SERVER_NAME,
+    MAX_CUSTOM_RULES: MAX_CUSTOM_RULES,
+    escapeMarkdown: escapeMarkdown,
+    buildRules: buildRules
+  };
+})();
+
+// Node / test harness: export without touching the browser global.
+if (typeof module !== "undefined" && module.exports) module.exports = RuleGen;
+</script>
+
+<script>
+"use strict";
+/* renderer — wires the controls to RuleGen and the preview pane.
+   Kept separate from the core so the core stays testable in Node.
+   This script needs a DOM; tests only check that it parses. */
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+
+  var state = {
+    serverName: "My Server",
+    tone: "strict",
+    selected: ["respect", "spam", "nsfw", "privacy", "mods", "age"],
+    custom: [],
+    numbering: "numbers",
+    header: true,
+    footer: true
+  };
+
+  var statusTimer = null;
+  function flash(msg) {
+    var el = $("status");
+    el.textContent = msg;
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(function () { el.textContent = ""; }, 3000);
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function buildCategoryList() {
+    var host = $("cats");
+    host.innerHTML = "";
+    RuleGen.CATEGORIES.forEach(function (cat) {
+      var label = document.createElement("label");
+      label.className = "cat";
+      var box = document.createElement("input");
+      box.type = "checkbox";
+      box.checked = state.selected.indexOf(cat.id) !== -1;
+      box.addEventListener("change", function () {
+        if (box.checked) {
+          if (state.selected.indexOf(cat.id) === -1) state.selected.push(cat.id);
+        } else {
+          state.selected = state.selected.filter(function (id) { return id !== cat.id; });
+        }
+        render();
+      });
+      var text = document.createElement("span");
+      var b = document.createElement("b");
+      b.textContent = cat.title;
+      var small = document.createElement("small");
+      small.textContent = cat.blurb;
+      text.appendChild(b);
+      text.appendChild(small);
+      label.appendChild(box);
+      label.appendChild(text);
+      host.appendChild(label);
+    });
+  }
+
+  function renderCustomList() {
+    var list = $("customList");
+    list.innerHTML = "";
+    state.custom.forEach(function (text, i) {
+      var li = document.createElement("li");
+      var span = document.createElement("span");
+      span.textContent = text;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "Remove";
+      btn.setAttribute("aria-label", "Remove custom rule: " + text);
+      btn.addEventListener("click", function () {
+        state.custom.splice(i, 1);
+        render();
+      });
+      li.appendChild(span);
+      li.appendChild(btn);
+      list.appendChild(li);
+    });
+  }
+
+  function renderPreview(out) {
+    var host = $("preview");
+    var html = "";
+    html += "<h3>" + escHtml(out.serverName) + " — Server Rules</h3>";
+    if (out.header) html += '<p class="welcome">' + escHtml(out.header) + "</p>";
+    if (out.preview.length === 0) {
+      html += '<p class="empty">No rules selected yet — tick a category on the left ' +
+        "or add a custom rule and they will show up here.</p>";
+    } else {
+      out.preview.forEach(function (r) {
+        var pre = state.numbering === "rule" ? "Rule " + r.num + ": "
+          : state.numbering === "dash" ? "— " : r.num + ". ";
+        html += '<p class="rule"><span class="num">' + escHtml(pre) + "</span><b>" +
+          escHtml(r.title) + "</b> — " + escHtml(r.text) + "</p>";
+      });
+    }
+    if (out.footer) html += '<p class="footer-note">' + escHtml(out.footer) + "</p>";
+    host.innerHTML = html;
+  }
+
+  function render() {
+    var out;
+    try {
+      out = RuleGen.buildRules(state);
+    } catch (e) {
+      // Should not happen from UI input (all values are validated on entry),
+      // but never leave the preview blank and silent if it does.
+      $("preview").innerHTML = '<p class="empty">' + escHtml(e.message) + "</p>";
+      return;
+    }
+    renderPreview(out);
+    renderCustomList();
+    $("toneNote").textContent = RuleGen.TONE_NOTES[state.tone];
+    $("stats").textContent = out.ruleCount + (out.ruleCount === 1 ? " rule" : " rules") +
+      " · " + out.wordCount + " words · Markdown + plain text";
+    // stash the latest outputs for the copy/download buttons
+    render.latest = out;
+  }
+
+  function currentOutput() {
+    return render.latest || RuleGen.buildRules(state);
+  }
+
+  function copyText(text, label) {
+    function done() { flash(label + " copied to clipboard."); }
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); done(); }
+      catch (e) { flash("Copy failed — select the preview text manually."); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function download(filename, text) {
+    var blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    flash("Downloaded " + filename + ".");
+  }
+
+  function slug(name) {
+    return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "server";
+  }
+
+  // --- wire up controls ---
+  $("serverName").addEventListener("input", function (e) {
+    state.serverName = e.target.value;
+    render();
+  });
+
+  $("tones").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-tone]");
+    if (!btn) return;
+    state.tone = btn.getAttribute("data-tone");
+    Array.prototype.forEach.call($("tones").querySelectorAll("button"), function (b) {
+      b.setAttribute("aria-pressed", String(b === btn));
+    });
+    render();
+  });
+
+  $("presets").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-preset]");
+    if (!btn) return;
+    state.selected = RuleGen.PRESETS[btn.getAttribute("data-preset")].slice();
+    buildCategoryList();
+    render();
+  });
+
+  function addCustom() {
+    var input = $("customInput");
+    var text = input.value.trim();
+    if (!text) return;
+    if (state.custom.length >= RuleGen.MAX_CUSTOM_RULES) {
+      flash("That's enough custom rules for one page (" + RuleGen.MAX_CUSTOM_RULES + ").");
+      return;
+    }
+    if (state.custom.indexOf(text) !== -1) {
+      flash("That rule is already on the list.");
+      return;
+    }
+    state.custom.push(text);
+    input.value = "";
+    input.focus();
+    render();
+  }
+  $("addCustom").addEventListener("click", addCustom);
+  $("customInput").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); addCustom(); }
+  });
+
+  $("numbering").addEventListener("change", function (e) {
+    state.numbering = e.target.value;
+    render();
+  });
+  $("includeHeader").addEventListener("change", function (e) {
+    state.header = e.target.checked;
+    render();
+  });
+  $("includeFooter").addEventListener("change", function (e) {
+    state.footer = e.target.checked;
+    render();
+  });
+
+  $("copyMd").addEventListener("click", function () {
+    copyText(currentOutput().markdown, "Markdown");
+  });
+  $("copyTxt").addEventListener("click", function () {
+    copyText(currentOutput().plain, "Plain text");
+  });
+  $("downloadMd").addEventListener("click", function () {
+    var out = currentOutput();
+    download(slug(out.serverName) + "-rules.md", out.markdown);
+  });
+
+  // --- init ---
+  var now = new Date();
+  $("previewTime").textContent = "Today at " +
+    now.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  buildCategoryList();
+  render();
+})();
+</script>
+</body>
+</html>
