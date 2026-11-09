@@ -1,0 +1,7 @@
+# guildrules is a single static file — nothing to build, nothing to ignore
+# except the usual OS/editor noise.
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.vscode/
